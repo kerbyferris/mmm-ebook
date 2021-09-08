@@ -65,7 +65,7 @@ def main() -> None:
                 break
 
     except Exception as e:
-        print(f"Error parsing RSS feed: {type(e)}")
+        print(f"Error parsing RSS feed: {e}")
 
 
 if __name__ == "__main__":
