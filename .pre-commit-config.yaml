@@ -18,7 +18,8 @@ repos:
     rev: v0.910
     hooks:
         - id: mypy
-          additional_dependencies: [pydantic]  # add if use pydantic
+          args: ["--ignore-missing-imports", "--scripts-are-modules"]
+
 -   repo: https://github.com/PyCQA/isort
     rev: 5.9.3
     hooks:
