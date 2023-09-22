@@ -2,7 +2,7 @@
 
 Rust utility for converting the
 <a href="https://www.mrmoneymustache.com" target="_blank">Mr. Money Mustache</a>
-blog to the EPUB file format, for people who prefer their ebooks to reading
+blog to the EPUB file format, for people who prefer reading on their ebooks to
 online.
 
 ## Usage
