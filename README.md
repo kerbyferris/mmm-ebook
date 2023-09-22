@@ -12,4 +12,4 @@ cargo run
 generates a new `output/mmm.epub` file.
 
 Optionally, download this repo's latest version
-[here](https://github.com/kerbyferris/mmm-ebook/output/mmm.epub).
+[here](https://github.com/kerbyferris/mmm-ebook/blob/main/output/mmm.epub).

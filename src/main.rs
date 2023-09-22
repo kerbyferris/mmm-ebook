@@ -16,6 +16,7 @@ use std::io::prelude::*;
 const RSS_URL: &str = "http://www.mrmoneymustache.com/feed/";
 const QUERY: &str = "?order=ASC&paged=";
 const OUTPUT_DIR: &str = "output";
+const OUTPUT_HTML_DIR: &str = "output/html";
 
 #[derive(Debug)]
 struct Article {
@@ -74,7 +75,7 @@ fn write_article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
         let title = item.title.as_ref().unwrap();
         let content = item.content.as_ref().unwrap();
 
-        let output_dir = format!("{}/{}", &OUTPUT_DIR, &year);
+        let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
 
         let page = build_html::HtmlPage::new()
             .with_paragraph(&date_string)
@@ -189,5 +190,5 @@ async fn main() {
     let feed_metadata = get_feed_metadata().await.unwrap();
     write_title_page_to_disk(&feed_metadata);
 
-    paginate_feed(34, None, &feed_metadata).await;
+    paginate_feed(1, None, &feed_metadata).await;
 }
