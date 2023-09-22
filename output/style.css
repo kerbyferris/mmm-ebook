@@ -1,0 +1,17 @@
+body {
+  /* background-color: pink !important; */
+}
+
+#toc ul {
+  padding: 0;
+}
+
+#toc li {
+  display: block;
+  padding: 1px 0;
+}
+
+#toc li a {
+  text-decoration: none;
+  color: black;
+}
