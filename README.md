@@ -1,15 +1,20 @@
-# MMM - Epub Creation
+# The Triple M Book
 
-Rust utility for converting the [Mr. Money Mustache] blog into epub format for
-up-to-date ereader-reading.
+Rust utility for converting the
+<a href="https://www.mrmoneymustache.com" target="_blank">Mr. Money Mustache</a>
+blog to the EPUB file format, for people who prefer their ebooks to reading
+online.
 
 ## Usage
+
+Generate a new, up-to-date `output/mmm.epub` file with:
 
 ```sh
 cargo run
 ```
 
-generates a new `output/mmm.epub` file.
-
-Optionally, download this repo's latest version
+Optionally, download this repo's latest version of the book
 [here](https://github.com/kerbyferris/mmm-ebook/raw/main/output/mmm.epub).
+
+NOTE: As of now, images require an internet connection to view, which is a
+somewhat disappointing experience on an airplane :/
