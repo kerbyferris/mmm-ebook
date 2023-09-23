@@ -1,12 +1,13 @@
-use async_recursion::async_recursion;
+// use async_recursion::async_recursion;
 use chrono::DateTime;
 use chrono::Datelike;
 // use epub_builder::TocElement;
-use epub_builder::{EpubBuilder, EpubContent, ReferenceType, Result, ZipCommand};
+// use epub_builder::{EpubBuilder, EpubContent, ReferenceType, Result, ZipCommand};
+use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipCommand};
 use rss::Channel;
 use scraper::Html as ScraperHtml;
 use scraper::Selector;
-use std::error::Error;
+// use std::error::Error;
 
 use build_html::*;
 
@@ -28,6 +29,7 @@ struct Article {
     title: String,
     file_path: String,
     chapter_title: String,
+    image_files: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -36,25 +38,25 @@ struct FeedMetadata {
     description: String,
 }
 
-async fn get_feed(page: &u8) -> Result<Channel, Box<dyn Error>> {
+fn get_feed(page: &u8) -> Channel {
     let url = format!("{}{}{}", RSS_URL, QUERY, page.to_string());
 
-    let content = reqwest::get(url).await?.bytes().await?;
-    let channel = Channel::read_from(&content[..])?;
+    let content = reqwest::blocking::get(url).unwrap().bytes().unwrap();
+    let channel = Channel::read_from(&content[..]).unwrap();
 
-    Ok(channel)
+    channel
 }
 
-async fn get_feed_metadata() -> Result<FeedMetadata, Box<dyn Error>> {
-    let content = reqwest::get(RSS_URL).await?.bytes().await?;
-    let channel = Channel::read_from(&content[..])?;
+fn get_feed_metadata() -> FeedMetadata {
+    let content = reqwest::blocking::get(RSS_URL).unwrap().bytes().unwrap();
+    let channel = Channel::read_from(&content[..]).unwrap();
 
     let feed_metadata = FeedMetadata {
         title: channel.title,
         description: channel.description,
     };
 
-    Ok(feed_metadata)
+    feed_metadata
 }
 
 fn write_title_page_to_disk(feed_metadata: &FeedMetadata) {
@@ -83,16 +85,18 @@ fn write_article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
         let document = ScraperHtml::parse_document(content);
         let selector = Selector::parse("img").unwrap();
 
+        let mut image_files: Vec<String> = vec![];
         for element in document.select(&selector) {
             let image_url = element.value().attr("src").unwrap();
-            let mut image = tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(reqwest::blocking::get(image_url));
+            let image_url_fragments: Vec<&str> = image_url.split("/").collect();
+            let image_name = image_url_fragments.last().unwrap();
+            let mut image = reqwest::blocking::get(image_url).unwrap();
 
-            let file_path = format!("{}/foo.png", &OUTPUT_IMG_DIR);
+            let file_path = format!("{}/{}", &OUTPUT_IMG_DIR, image_name);
             let mut file = fs::File::create(&file_path).unwrap();
 
             copy(&mut image, &mut file).unwrap();
+            image_files.push(image_name.to_string());
         }
 
         let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
@@ -116,43 +120,40 @@ fn write_article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
             title: title.to_string(),
             file_path,
             chapter_title,
+            image_files,
         };
+
+        println!("{:#?}", article);
         articles.push(article)
     }
     return Some(articles);
 }
 
-#[async_recursion(?Send)]
-async fn paginate_feed(page: u8, mut articles: Option<Vec<Article>>, feed_metadata: &FeedMetadata) {
+fn paginate_feed(page: u8, mut articles: Option<Vec<Article>>, feed_metadata: &FeedMetadata) {
     let current_page = &page;
-    let res = get_feed(current_page).await;
+    let res = get_feed(current_page);
 
-    match res {
-        Err(why) => panic!("{:?}", why),
-        Ok(res) => {
-            let items = &res.items;
+    let items = &res.items;
 
-            match items.len() {
-                0 => {
-                    let feed_title: &str = &feed_metadata.title;
-                    let feed_description: &str = &feed_metadata.description;
+    match items.len() {
+        0 => {
+            let feed_title: &str = &feed_metadata.title;
+            let feed_description: &str = &feed_metadata.description;
 
-                    build_epub(feed_title, feed_description, articles);
+            build_epub(feed_title, feed_description, articles);
 
-                    return;
-                }
-                _ => {
-                    let new_articles = write_article_to_disk(&items);
-                    match articles {
-                        None => articles = new_articles,
-                        Some(_) => articles.as_mut().unwrap().extend(new_articles.unwrap()),
-                    }
-                }
+            return;
+        }
+        _ => {
+            let new_articles = write_article_to_disk(&items);
+            match articles {
+                None => articles = new_articles,
+                Some(_) => articles.as_mut().unwrap().extend(new_articles.unwrap()),
             }
-            let next_page = current_page + 1;
-            paginate_feed(next_page, articles, feed_metadata).await;
         }
     }
+    let next_page = current_page + 1;
+    paginate_feed(next_page, articles, feed_metadata);
 }
 
 fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
@@ -207,11 +208,10 @@ fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
     builder.generate(&mut file).expect("no epub");
 }
 
-#[tokio::main]
-async fn main() {
-    let feed_metadata = get_feed_metadata().await.unwrap();
+fn main() {
+    let feed_metadata = get_feed_metadata();
     write_title_page_to_disk(&feed_metadata);
 
     // paginate_feed(1, None, &feed_metadata).await;
-    paginate_feed(34, None, &feed_metadata).await;
+    paginate_feed(34, None, &feed_metadata);
 }
