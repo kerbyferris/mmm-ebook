@@ -4,19 +4,24 @@ use chrono::Datelike;
 // use epub_builder::TocElement;
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, Result, ZipCommand};
 use rss::Channel;
+use scraper::Html as ScraperHtml;
+use scraper::Selector;
 use std::error::Error;
 
 use build_html::*;
 
 use std::env;
 use std::fs;
-use std::fs::File;
 use std::io::prelude::*;
+use std::{fs::File, io::copy};
 
 const RSS_URL: &str = "http://www.mrmoneymustache.com/feed/";
 const QUERY: &str = "?order=ASC&paged=";
+const ASSETS_DIR: &str = "assets";
 const OUTPUT_DIR: &str = "output";
 const OUTPUT_HTML_DIR: &str = "output/html";
+const OUTPUT_IMG_DIR: &str = "output/img";
+const EPUB_NAME: &str = "mmm.epub";
 
 #[derive(Debug)]
 struct Article {
@@ -58,7 +63,7 @@ fn write_title_page_to_disk(feed_metadata: &FeedMetadata) {
         .with_paragraph(&feed_metadata.description)
         .to_html_string();
 
-    let file_path = format!("{}/title.html", OUTPUT_DIR);
+    let file_path = format!("{}/title.html", &OUTPUT_HTML_DIR);
     let mut file = fs::File::create(&file_path).unwrap();
     file.write_all(page.as_bytes()).unwrap();
 }
@@ -74,6 +79,21 @@ fn write_article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
 
         let title = item.title.as_ref().unwrap();
         let content = item.content.as_ref().unwrap();
+
+        let document = ScraperHtml::parse_document(content);
+        let selector = Selector::parse("img").unwrap();
+
+        for element in document.select(&selector) {
+            let image_url = element.value().attr("src").unwrap();
+            let mut image = tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(reqwest::blocking::get(image_url));
+
+            let file_path = format!("{}/foo.png", &OUTPUT_IMG_DIR);
+            let mut file = fs::File::create(&file_path).unwrap();
+
+            copy(&mut image, &mut file).unwrap();
+        }
 
         let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
 
@@ -140,12 +160,12 @@ fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
     builder.metadata("title", title).unwrap();
     builder.metadata("title", description).unwrap();
     builder
-        .stylesheet(File::open("output/style.css").unwrap())
+        .stylesheet(File::open(format!("{}/style.css", &ASSETS_DIR)).unwrap())
         .unwrap();
     builder
         .add_cover_image(
             "cover.png",
-            File::open("output/cover.png").unwrap(),
+            File::open(format!("{}/cover.png", &ASSETS_DIR)).unwrap(),
             "image/png",
         )
         .unwrap();
@@ -157,15 +177,17 @@ fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
         .unwrap();
     builder
         .add_content(
-            EpubContent::new("title.xhtml", File::open("output/title.html").unwrap())
-                .title(title)
-                .reftype(epub_builder::ReferenceType::TitlePage),
+            EpubContent::new(
+                "title.xhtml",
+                File::open(format!("{}/title.html", &OUTPUT_HTML_DIR)).unwrap(),
+            )
+            .title(title)
+            .reftype(epub_builder::ReferenceType::TitlePage),
         )
         .unwrap();
     builder.inline_toc();
     builder.set_toc_name(description);
     for article in articles.unwrap() {
-        println!("writing article: {:#?}", article);
         builder
             .add_content(
                 EpubContent::new(
@@ -178,7 +200,7 @@ fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
             .unwrap();
     }
     let curr_dir = env::current_dir().expect("no current directory");
-    let temp_file = curr_dir.join("output/mmm.epub");
+    let temp_file = curr_dir.join(format!("{}/{}", &OUTPUT_DIR, &EPUB_NAME));
 
     let mut file = File::create(temp_file).expect("no file");
 
@@ -190,5 +212,6 @@ async fn main() {
     let feed_metadata = get_feed_metadata().await.unwrap();
     write_title_page_to_disk(&feed_metadata);
 
-    paginate_feed(1, None, &feed_metadata).await;
+    // paginate_feed(1, None, &feed_metadata).await;
+    paginate_feed(34, None, &feed_metadata).await;
 }
