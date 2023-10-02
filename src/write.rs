@@ -20,7 +20,7 @@ use lol_html::{element, rewrite_str, RewriteStrSettings};
 use std::io::copy;
 
 fn get_mime_type(image_name: &str) -> Result<String, Box<dyn Error>> {
-    let fragments: Vec<&str> = image_name.split(".").collect();
+    let fragments: Vec<&str> = image_name.split('.').collect();
     let suffix = fragments.last();
 
     match suffix {
@@ -37,7 +37,7 @@ pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<(), Box<dyn Er
         .to_html_string();
 
     let file_path = format!("{}/title.html", &OUTPUT_HTML_DIR);
-    let mut file = fs::File::create(&file_path)?;
+    let mut file = fs::File::create(file_path)?;
     file.write_all(page.as_bytes())?;
 
     Ok(())
@@ -84,7 +84,7 @@ pub fn article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
         println!("{:#?}", article);
         articles.push(article)
     }
-    return Some(articles);
+    Some(articles)
 }
 
 fn update_img_html(
@@ -97,14 +97,14 @@ fn update_img_html(
         let image_url = el.get_attribute("src").unwrap();
 
         let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
-        fs::create_dir_all(&output_dir)?;
+        fs::create_dir_all(output_dir)?;
 
         let image_result = reqwest::blocking::get(&image_url);
 
         match image_result {
             Err(e) => println!("{}", e),
             Ok(mut image) => {
-                let image_url_fragments: Vec<&str> = image_url.split("/").collect();
+                let image_url_fragments: Vec<&str> = image_url.split('/').collect();
                 let image_name = image_url_fragments.last().unwrap();
                 let unique_image_name = format!("{}-{}", date_path_string, image_name);
 

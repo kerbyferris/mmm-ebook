@@ -11,13 +11,7 @@ use crate::data::Article;
 use crate::data::FeedMetadata;
 
 mod config;
-use crate::config::ASSETS_DIR;
-use crate::config::EPUB_NAME;
-use crate::config::OUTPUT_DIR;
-use crate::config::OUTPUT_HTML_DIR;
-use crate::config::QUERY;
-use crate::config::RSS_URL;
-use crate::config::STARTING_PAGE;
+use crate::config::*;
 
 use std::error::Error;
 use std::fs::File;
@@ -29,7 +23,7 @@ use rss::Channel;
 use std::env::current_dir;
 
 fn get_feed(page: &u8) -> Result<Channel, Box<dyn Error>> {
-    let url = format!("{}{}{}", RSS_URL, QUERY, page.to_string());
+    let url = format!("{}{}{}", RSS_URL, QUERY, page);
 
     let content = reqwest::blocking::get(url)?.bytes()?;
     let channel = Channel::read_from(&content[..])?;
@@ -65,7 +59,7 @@ fn paginate_feed(page: u8, mut articles: Option<Vec<Article>>, feed_metadata: &F
             return;
         }
         _ => {
-            let new_articles = article_to_disk(&items);
+            let new_articles = article_to_disk(items);
             match articles {
                 None => articles = new_articles,
                 Some(_) => articles.as_mut().unwrap().extend(new_articles.unwrap()),
