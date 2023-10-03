@@ -16,6 +16,8 @@ use crate::config::*;
 use std::error::Error;
 use std::fs::File;
 
+use color_eyre::eyre;
+
 // use epub_builder::TocElement;
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipCommand};
 use rss::Channel;
@@ -54,7 +56,7 @@ fn paginate_feed(page: u8, mut articles: Option<Vec<Article>>, feed_metadata: &F
             let feed_title: &str = &feed_metadata.title;
             let feed_description: &str = &feed_metadata.description;
 
-            build_epub(feed_title, feed_description, articles);
+            let _ = build_epub(feed_title, feed_description, articles);
 
             return;
         }
@@ -67,10 +69,14 @@ fn paginate_feed(page: u8, mut articles: Option<Vec<Article>>, feed_metadata: &F
         }
     }
     let next_page = current_page + 1;
-    paginate_feed(next_page, articles, feed_metadata);
+    paginate_feed(next_page, articles, feed_metadata)
 }
 
-fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
+fn build_epub(
+    title: &str,
+    description: &str,
+    articles: Option<Vec<Article>>,
+) -> Result<(), eyre::Report> {
     let mut builder = EpubBuilder::new(ZipCommand::new().unwrap()).unwrap();
     builder.metadata("title", title).unwrap();
     builder.metadata("title", description).unwrap();
@@ -124,7 +130,7 @@ fn build_epub(title: &str, description: &str, articles: Option<Vec<Article>>) {
 
     let mut file = File::create(temp_file).expect("no file");
 
-    builder.generate(&mut file).expect("no epub");
+    builder.generate(&mut file)
 }
 
 fn main() {
