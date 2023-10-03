@@ -5,14 +5,14 @@ use color_eyre::eyre;
 // use epub_builder::TocElement;
 use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipCommand};
 
-use crate::data::Article;
+use crate::data::ArticleOnDisk;
 
 use crate::config::*;
 
 pub fn generate_epub(
     title: &str,
     description: &str,
-    articles: Option<Vec<Article>>,
+    articles: Vec<ArticleOnDisk>,
 ) -> Result<(), eyre::Report> {
     let mut builder = EpubBuilder::new(ZipCommand::new()?)?;
     builder.metadata("title", title)?;
@@ -36,7 +36,8 @@ pub fn generate_epub(
     )?;
     builder.inline_toc();
     builder.set_toc_name(description);
-    for article in articles.unwrap() {
+
+    for article in articles {
         builder.add_content(
             EpubContent::new(article.chapter_title, File::open(article.file_path)?)
                 .title(article.title)

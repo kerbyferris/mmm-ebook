@@ -2,10 +2,10 @@ use crate::config::OUTPUT_HTML_DIR;
 use crate::config::OUTPUT_IMG_DIR;
 
 use crate::data::Article;
+use crate::data::ArticleOnDisk;
 use crate::data::FeedMetadata;
 use crate::data::Image;
 
-use chrono::DateTime;
 use chrono::Datelike;
 
 use std::error::Error;
@@ -19,16 +19,21 @@ use lol_html::{element, rewrite_str, RewriteStrSettings};
 
 use std::io::copy;
 
-fn get_mime_type(image_name: &str) -> Result<String, Box<dyn Error>> {
-    let fragments: Vec<&str> = image_name.split('.').collect();
-    let suffix = fragments.last();
+fn get_image_mime_type(image_name: &str) -> Result<String, Box<dyn Error>> {
+    let file_ext_fallback = "jpg";
+    let mime_type_fallback = "image/jpg".to_string();
 
-    match suffix {
-        // TODO: match jpg JPG jpeg JPEG png PNG
-        None => println!("none"),
-        Some(s) => println!("{}", s),
+    let &file_ext = image_name
+        .split('.')
+        .collect::<Vec<&str>>()
+        .last()
+        .unwrap_or(&file_ext_fallback);
+
+    match file_ext {
+        "jpg" | "JPG" | "jpeg" | "JPEG" => Ok(mime_type_fallback),
+        "png" | "PNG" => Ok("image/png".to_string()),
+        &_ => Ok(mime_type_fallback),
     }
-    Ok("image/jpg".to_string())
 }
 
 pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<&FeedMetadata, Box<dyn Error>> {
@@ -44,48 +49,40 @@ pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<&FeedMetadata,
     Ok(feed_metadata)
 }
 
-pub fn article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
-    let mut articles: Vec<Article> = vec![];
-    for item in items {
-        let date = DateTime::parse_from_rfc2822(item.pub_date.as_ref().unwrap()).unwrap();
+pub fn article_to_disk(article: &Article) -> Option<ArticleOnDisk> {
+    let time_stamp = article.time_stamp;
 
-        let year = date.year().to_string();
+    let year = time_stamp.year().to_string();
 
-        let date_string = date.format("%b %d, %Y").to_string();
-        let date_path_string = date.format("%Y%m%d").to_string();
+    let date_path_string = time_stamp.format("%Y%m%d").to_string();
 
-        let content = item.content.as_ref().unwrap();
-        let title = item.title.as_ref().unwrap();
+    let (new_content, images) =
+        update_img_html(article.content.to_string(), &date_path_string, &year).unwrap();
 
-        let (new_content, images) =
-            update_img_html(content.to_string(), &date_path_string, &year).unwrap();
+    let title = &article.title;
 
-        let page = build_html::HtmlPage::new()
-            .with_paragraph(&date_string)
-            .with_header(1, title)
-            .with_paragraph(new_content)
-            .to_html_string();
+    let page = build_html::HtmlPage::new()
+        .with_paragraph(&article.date)
+        .with_header(1, title)
+        .with_paragraph(new_content)
+        .to_html_string();
 
-        let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
+    let output_dir = format!("{}/{}", &OUTPUT_HTML_DIR, &year);
 
-        let chapter_title = format!("chapter_{}.html", &date_path_string);
+    let chapter_title = format!("chapter_{}.html", &date_path_string);
 
-        let file_path = format!("{}/{}", &output_dir, &chapter_title);
+    let file_path = format!("{}/{}", &output_dir, &chapter_title);
 
-        let mut file = File::create(&file_path).unwrap();
-        file.write_all(page.as_bytes()).unwrap();
+    let mut file = File::create(&file_path).unwrap();
+    file.write_all(page.as_bytes()).unwrap();
 
-        let article = Article {
-            title: title.to_string(),
-            file_path,
-            chapter_title,
-            images,
-        };
-
-        println!("{:#?}", article);
-        articles.push(article)
-    }
-    Some(articles)
+    let article_on_disk = ArticleOnDisk {
+        title: title.to_string(),
+        file_path,
+        chapter_title,
+        images,
+    };
+    Some(article_on_disk)
 }
 
 fn update_img_html(
@@ -115,7 +112,7 @@ fn update_img_html(
                 let image_meta = Image {
                     name: unique_image_name.to_string(),
                     path: img_file_path,
-                    mime_type: get_mime_type(image_name).unwrap(),
+                    mime_type: get_image_mime_type(image_name).unwrap(),
                 };
 
                 article_images.push(image_meta);

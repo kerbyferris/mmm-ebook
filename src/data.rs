@@ -1,3 +1,6 @@
+use chrono::DateTime;
+use chrono::FixedOffset;
+
 #[derive(Debug)]
 pub struct Image {
     pub name: String,
@@ -6,11 +9,20 @@ pub struct Image {
 }
 
 #[derive(Debug)]
-pub struct Article {
+pub struct ArticleOnDisk {
     pub title: String,
     pub file_path: String,
     pub chapter_title: String,
     pub images: Vec<Image>,
+}
+
+#[derive(Debug)]
+pub struct Article {
+    pub title: String,
+    pub date: String,
+    pub time_stamp: DateTime<FixedOffset>,
+    // pub time_stamp: String,
+    pub content: String,
 }
 
 #[derive(Debug)]

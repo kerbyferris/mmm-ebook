@@ -5,4 +5,5 @@ pub const OUTPUT_DIR: &str = "output";
 pub const OUTPUT_HTML_DIR: &str = "output/html";
 pub const OUTPUT_IMG_DIR: &str = "output/images";
 pub const EPUB_NAME: &str = "mmm.epub";
-pub const STARTING_PAGE: u8 = 34;
+// pub const STARTING_PAGE: u16 = 34;
+// pub const STARTING_PAGE: u16 = 35;
