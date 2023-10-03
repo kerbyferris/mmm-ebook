@@ -20,8 +20,7 @@ pub struct ArticleOnDisk {
 pub struct Article {
     pub title: String,
     pub date: String,
-    pub time_stamp: DateTime<FixedOffset>,
-    // pub time_stamp: String,
+    pub timestamp: DateTime<FixedOffset>,
     pub content: String,
 }
 
