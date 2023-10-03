@@ -16,5 +16,5 @@ cargo run
 Optionally, download this repo's latest version of the book
 [here](https://github.com/kerbyferris/mmm-ebook/raw/main/output/mmm.epub).
 
-NOTE: As of now, images require an internet connection to view, which is a
-somewhat disappointing experience on an airplane :/
+NOTE: As of now, images require an internet connection to view, which can be a
+disappointing experience on an airplane :/
