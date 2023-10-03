@@ -24,13 +24,14 @@ fn get_mime_type(image_name: &str) -> Result<String, Box<dyn Error>> {
     let suffix = fragments.last();
 
     match suffix {
+        // TODO: match jpg JPG jpeg JPEG png PNG
         None => println!("none"),
         Some(s) => println!("{}", s),
     }
     Ok("image/jpg".to_string())
 }
 
-pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<(), Box<dyn Error>> {
+pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<&FeedMetadata, Box<dyn Error>> {
     let page = build_html::HtmlPage::new()
         .with_header(1, &feed_metadata.title)
         .with_paragraph(&feed_metadata.description)
@@ -40,7 +41,7 @@ pub fn title_page_to_disk(feed_metadata: &FeedMetadata) -> Result<(), Box<dyn Er
     let mut file = fs::File::create(file_path)?;
     file.write_all(page.as_bytes())?;
 
-    Ok(())
+    Ok(feed_metadata)
 }
 
 pub fn article_to_disk(items: &Vec<rss::Item>) -> Option<Vec<Article>> {
