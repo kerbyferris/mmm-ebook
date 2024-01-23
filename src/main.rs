@@ -1,6 +1,7 @@
 mod write;
 use crate::write::article_to_disk;
 use crate::write::title_page_to_disk;
+use crate::write::title_page_to_disk;
 
 mod data;
 use crate::data::Article;
@@ -81,7 +82,7 @@ fn main() -> Result<(), eyre::Report> {
 
     let articles: Vec<Article> = data.into_iter().flatten().collect();
     let articles_on_disk: Vec<ArticleOnDisk> = articles
-        .iter()
+        .par_iter()
         .map(|a| article_to_disk(a.clone()).unwrap().unwrap())
         .collect();
 
